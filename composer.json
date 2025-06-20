@@ -1,0 +1,27 @@
+{
+    "name": "shihabjamil/dtomatic",
+    "description": "Dtomatic is a flexible, reflection-based object mapper for Laravel applications. It automatically maps data from source objects to DTO classes, including support for nested objects and collections",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Dtomatic\\": "src/",
+            "Dtomatic\\Facades\\": "src/Facades/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Shihab Jamil"
+        }
+    ],
+    "require": {
+        "php": "^8.1"
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Dtomatic\\DtomaticServiceProvider"
+            ]
+        }
+    }
+}
