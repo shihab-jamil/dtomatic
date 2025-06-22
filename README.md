@@ -328,7 +328,7 @@ class UserDTO
 
 ---
 
-## 📖 Why Use Dtomatic over solutions?
+## 📖 Why Use Dtomatic over other solutions?
 
 - Laravel Resources require manual array structures.
 - Dtomatic uses native typed DTO classes with reflection and PHP Attributes.
