@@ -17,8 +17,7 @@
 
 Install the package via Composer:
 
-```
-bash
+```bash
 composer require sj/dtomatic
 ```
 
@@ -28,8 +27,7 @@ composer require sj/dtomatic
 
 To publish the configuration file:
 
-```
-bash
+```bash
 php artisan vendor:publish --provider="Dtomatic\DtomaticServiceProvider" --tag=config
 ```
 
@@ -41,18 +39,70 @@ config/dtomatic.php
 
 Example content:
 
-```
-php
+```php
 return [
 
-    'strict_types' => true,
-    'date_format' => 'Y-m-d H:i:s',
-    'global_ignored_properties' => [],
-    'custom_converters' => [
+    'strict_types' => true, //If enabled, Dtomatic will throw an exception when a type mismatch occurs.
+    'date_format' => 'Y-m-d H:i:s', // The default date format used when converting DateTime objects to strings
+
+    //You can register custom type converters here. When mapping a value,
+    //Dtomatic will check if a converter exists for its type and use it.
+    'custom_converters' => [   
         // Example:
-        // \Carbon\Carbon::class => \App\Converters\CarbonDateConverter::class
+        // 'string' => \App\Converters\JsonToArrayConverter::class,
     ],
 ];
+```
+
+---
+
+## 🏷️ Available Attributes
+
+Dtomatic supports the following PHP attributes to customize DTO mapping behavior:
+
+### 1. `#[ArrayOf(Type::class)]`
+
+- Use this attribute to specify the type of objects inside an array or collection property.
+- Enables automatic mapping of nested collections of DTOs.
+
+```php
+    use ShihabJamil\Dtomatic\Attributes\ArrayOf;
+    
+    class UserDTO
+    {
+        #[ArrayOf(PostDTO::class)]
+        public array $posts;
+    }
+```
+
+### 2. `#[Ignore]`
+
+- Marks a DTO property to be ignored during mapping.
+- Useful for excluding properties you do not want to populate.
+
+```php
+    use ShihabJamil\Dtomatic\Attributes\Ignore;
+
+    class PostDTO
+    {
+        #[Ignore]
+        public string $internalNotes;
+    }
+```
+
+### 3. `#[Converter(ConverterClass::class)]`
+
+- Specifies a custom converter class for a particular property.
+- The converter class must implement a `convert($value)` method returning the converted value.
+
+```php
+    use ShihabJamil\Dtomatic\Attributes\Converter;
+
+    class PostDTO
+    {
+        #[Converter(MyCustomConverter::class)]
+        public string $specialField;
+    }
 ```
 
 ---
@@ -61,8 +111,7 @@ return [
 
 ### Example DTO class:
 
-```
-php
+```php
 namespace App\DTO;
 
 class UserDTO
@@ -75,8 +124,7 @@ class UserDTO
 
 ### Example mapping in your controller or service:
 
-```
-php
+```php
 use App\Models\User;
 use Dtomatic\Facades\ModelMapper;
 use App\DTO\UserDTO;
@@ -91,8 +139,7 @@ return response()->json($dto);
 
 ## 📑 Nested Mapping Example
 
-```
-php
+```php
 class PostDTO {
     public int $id;
     public string $title;
@@ -105,10 +152,44 @@ $dto = ModelMapper::map($post, PostDTO::class);
 
 ---
 
-## 📚 Collection Mapping
+##  Nested Collections Mapping with #[ArrayOf] Attribute
+
+```php
+    <?php
+    
+    namespace App\Dto;
+    
+    use ShihabJamil\Dtomatic\Attributes\ArrayOf;
+    
+    class UserDTO
+    {
+        public int $id;
+        public string $name;
+    
+        #[ArrayOf(PostDTO::class)]
+        public array $posts;
+    }
+    
+    class PostDTO
+    {
+        public int $id;
+        public string $title;
+    }
+```
+### Example usage:
+```php
+    $userModel = User::with('posts')->find(1);
+    $userDto = ModelMapper::map($userModel, UserDTO::class);
+    
+    // $userDto->posts is now an array of PostDTO objects
 
 ```
-php
+
+---
+
+## 📚 Collection Mapping
+
+```php
 $users = User::all();
 $dtoList = ModelMapper::mapCollection($users, UserDTO::class);
 ```
@@ -117,8 +198,7 @@ $dtoList = ModelMapper::mapCollection($users, UserDTO::class);
 
 ## 🎛️ Property-Level Converter Example
 
-```
-php
+```php
 namespace App\Converters;
 
 class UppercaseConverter
@@ -132,15 +212,14 @@ class UppercaseConverter
 
 DTO usage:
 
-```
-php
+```php
 use Dtomatic\Attributes\Converter;
 
 class UserDTO
 {
     public int $id;
 
-    #[Converter(converterClass: \App\Converters\UppercaseConverter::class)]
+    #[Converter(\App\Converters\UppercaseConverter::class)]
     public string $name;
 
     public string $email;
@@ -153,34 +232,61 @@ class UserDTO
 
 In `config/dtomatic.php`:
 
-```
-php
+```php
 'custom_converters' => [
-    \Carbon\Carbon::class => \App\Converters\CarbonDateConverter::class
+    'string' => \App\Converters\JsonToArrayConverter::class,
 ]
 ```
 
 Converter class:
 
-```
-php
+```php
 namespace App\Converters;
 
-class CarbonDateConverter
+class PhoneNumberConverter
 {
-    public function convert(\Carbon\Carbon $date): string
+    public function convert($value): mixed
     {
-        return $date->format('d-m-Y');
+        if (is_string($value) && $this->isJson($value)) {
+            return json_decode($value, true);
+        }
+        return $value;
+    }
+    
+    private function isJson(string $string): bool
+    {
+        json_decode($string);
+        return json_last_error() === JSON_ERROR_NONE;
     }
 }
 ```
 
+```php
+    class UserPreferencesDTO
+    {
+        public array $preferences;
+    }
+```
+
+```php
+    $user = new \App\Models\User();
+    $user->preferences = '{"theme":"dark","notifications":true}';
+```
+
+```php
+    $dto = Dtomatic::map($user, UserPreferencesDTO::class);
+    print_r($dto->preferences);
+    // Output:
+    // [
+    //   "theme" => "dark",
+    //   "notifications" => true
+    // ]
+```
 ---
 
 ## 🛑 Ignoring Properties
 
-```
-php
+```php
 use Dtomatic\Attributes\Ignore;
 
 class UserDTO
@@ -204,8 +310,7 @@ When `strict_types` is enabled in config, Dtomatic throws `InvalidArgumentExcept
 
 Model:
 
-```
-php
+```php
 public function getFullNameAttribute()
 {
     return "{$this->first_name} {$this->last_name}";
@@ -214,8 +319,7 @@ public function getFullNameAttribute()
 
 DTO:
 
-```
-php
+```php
 class UserDTO
 {
     public string $full_name;
