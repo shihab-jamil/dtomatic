@@ -243,7 +243,7 @@ Converter class:
 ```php
 namespace App\Converters;
 
-class PhoneNumberConverter
+class JsonToArrayConverter
 {
     public function convert($value): mixed
     {
