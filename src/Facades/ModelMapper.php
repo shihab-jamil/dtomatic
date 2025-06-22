@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Facade;
 
 /**
  * @method static object map(object $source, string $destinationClass)
+ * @method static array mapCollection(\Illuminate\Support\Collection $collection, string $dtoClass)
  */
 class ModelMapper extends Facade
 {
