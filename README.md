@@ -28,7 +28,7 @@ composer require sj/dtomatic
 To publish the configuration file:
 
 ```bash
-php artisan vendor:publish --provider="Dtomatic\DtomaticServiceProvider" --tag=config
+php artisan vendor:publish --provider="Dtomatic\DtomaticServiceProvider" --tag=dtomatic-config
 ```
 
 This will publish a config file at:
