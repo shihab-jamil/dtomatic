@@ -311,7 +311,7 @@ When `strict_types` is enabled in config, Dtomatic throws `InvalidArgumentExcept
 Model:
 
 ```php
-public function getFullNameAttribute()
+public function getFullName()
 {
     return "{$this->first_name} {$this->last_name}";
 }
