@@ -3,6 +3,7 @@
 namespace Dtomatic\Mappers;
 
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 use ReflectionClass;
 use ReflectionNamedType;
 use ReflectionProperty;
@@ -39,13 +40,9 @@ class ModelMapper
                 continue;
             }
 
-            // Check for getter first
-            $getterMethod = 'get' . ucfirst($propName);
-            if (method_exists($source, $getterMethod)) {
-                $value = $source->$getterMethod();
-            } elseif (array_key_exists($propName, $sourceProps)) {
-                $value = $sourceProps[$propName];
-            } else {
+            $value = $this->findSourceValue($source, $sourceProps, $propName);
+
+            if ($value === null) {
                 continue;
             }
 
@@ -95,6 +92,43 @@ class ModelMapper
         }
 
         return $destination;
+    }
+
+    /**
+     * Find the source value by checking multiple naming conventions.
+     */
+    private function findSourceValue(object $source, array $sourceProps, string $propName)
+    {
+        // 1. Check for getter method with exact name first
+        $getterMethod = 'get' . ucfirst($propName);
+        if (method_exists($source, $getterMethod)) {
+            return $source->$getterMethod();
+        }
+
+        // 2. Check for getter method with snake_case conversion
+        $snakeCaseProp = Str::snake($propName);
+        $snakeCaseGetter = 'get' . ucfirst(Str::camel($snakeCaseProp));
+        if (method_exists($source, $snakeCaseGetter)) {
+            return $source->$snakeCaseGetter();
+        }
+
+        // 3. Check for exact property name match
+        if (array_key_exists($propName, $sourceProps)) {
+            return $sourceProps[$propName];
+        }
+
+        // 4. Check for snake_case version of camelCase property
+        if (array_key_exists($snakeCaseProp, $sourceProps)) {
+            return $sourceProps[$snakeCaseProp];
+        }
+
+        // 5. Check for camelCase version of snake_case property
+        $camelCaseProp = Str::camel($propName);
+        if (array_key_exists($camelCaseProp, $sourceProps)) {
+            return $sourceProps[$camelCaseProp];
+        }
+
+        return null;
     }
 
     /**
